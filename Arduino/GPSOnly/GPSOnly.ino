@@ -23,6 +23,20 @@ static const uint8_t GPS_INIT_CYCLE = 5;
 //GPS 오차 무시하기 위한 최저 속도
 static const double GPS_IGNORE_SPEED = 1.5;
 
+//GPS 정지 메세지(임의로 설정해 놓았기 때문에 변경가능)
+static const String GPS_STOP_MSG = "GPS_STOP";
+static const String GPS_STOP_RESPONSE = "GPS_STOPPED";
+//GPS 시작 메세지(임의로 설정해 놓았기 때문에 변경가능)
+static const String GPS_START_MSG = "GPS_START";
+static const String GPS_START_RESPONSE = "GPS_STARTED";
+//GPS 속도, 거리 메세지, 여기에서 값 붙여서 보냄(임의로 설정해 놓았기 때문에 변경가능)
+static const String GPS_DISTANCE_MSG = "GPS_DISTANCE ";
+static const String GPS_SPPED_MSG = "GPS_SPPED ";
+//GPS 신호대기 메세지(임의로 설정해 놓았기 때문에 변경가능)
+static const String GPS_WAITSIG_MSG = "GPS_WAITSIG";
+//GPS 최초 시작 메세지(임의로 설정해 놓았기 때문에 변경가능)
+static const String GPS_INIT_MSG = "GPS_INIT ";
+
 // GPS 데이터를를 DELAY_MILLISEC/1000초동안 입력받아 TinyGPSPlus 객체가 처리할 수 있게 함
 void getGPSData()
 {
@@ -45,7 +59,7 @@ void setup() {
   ss.begin(GPS_BAUD);
 
   //주어진 사이클만큼 GPS 준비시킴
-  bt << "Initializing GPS for " << GPS_INIT_CYCLE * DELAY_MILLISEC / 1000<< " seconds..." << endl;
+  bt << GPS_INIT_MSG << GPS_INIT_CYCLE * DELAY_MILLISEC / 1000 << endl;
   for (register uint8_t i = 0; i < GPS_INIT_CYCLE; ++i)
   {
     getGPSData();
@@ -70,18 +84,35 @@ void loop() {
         double lng = gps.location.lng();
         double currentSpd = gps.speed.kmph();
 
+        //거리는 m(미터)단위, 속도는 km/h 단위
         if (currentSpd >= GPS_IGNORE_SPEED)
         {
-          bt << "Moved distance : " << gps.distanceBetween(lastLatitude, lastLongitude, lat, lng) << "m" << endl;
-          bt << "Current Speed : " << currentSpd << "km/h" << endl;
+          bt << GPS_DISTANCE_MSG << gps.distanceBetween(lastLatitude, lastLongitude, lat, lng) << endl;
+          bt << GPS_SPPED_MSG << currentSpd << endl;
         }
         else
-          bt << "Moved distance : 0m" << endl << "Current Speed : 0km/h" << endl;
+          bt << GPS_DISTANCE_MSG << '0' << endl << GPS_SPPED_MSG << '0' << endl;
 
         lastLatitude = lat;
         lastLongitude = lng;
       }
     }
-    else bt << "Waiting for good GPS signal..." << endl;
+    else bt << GPS_WAITSIG_MSG << endl;
+  }
+
+  //메세지 처리 -> 명령 받으면 실행 후 답장 보냄
+  if (bt.available())
+  {
+    String msg = bt.readString();
+    if (true == bUseGPS && msg == GPS_STOP_MSG)
+    {
+      bUseGPS = false;
+      bt.println(GPS_STOP_RESPONSE);
+    }
+    else if (false == bUseGPS && msg == GPS_START_MSG)
+    {
+      bUseGPS = true;
+      bt.println(GPS_START_RESPONSE);
+    }
   }
 }
