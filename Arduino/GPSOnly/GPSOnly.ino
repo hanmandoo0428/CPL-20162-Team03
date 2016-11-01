@@ -10,26 +10,22 @@
 
 TinyGPSPlus gps;
 AltSoftSerial ss;
-static const uint16_t GPS_BAUD = 9600;
 HardwareSerial &bt = Serial;
+//블루투스 baud rate는 모듈에 맞춰서 변경가능
+//GPS baud rate는 9600 고정
 static const uint32_t BT_BAUD = 115200;
+static const uint16_t GPS_BAUD = 9600;
 
-//GPS 사용여부 불리언 변수
-bool bUseGPS = true;
-//이동거리 계산 위함(위도, 경도)
-double lastLongitude, lastLatitude;
-//GPS를 처음으로 받으면 위도 경도 초기화 후 bFirstGPS를 false로 바꿔 거리 계산을 시작함
-bool bFirstGPS = true;
+//GPS 신호 읽을 시간, ms 단위
+static const uint16_t DELAY_MILLISEC = 1000;
+//GPS 초기화 사이클 회숫
+static const uint8_t GPS_INIT_CYCLE = 5;
+//GPS 오차 무시하기 위한 최저 속도
+static const double GPS_IGNORE_SPEED = 1.5;
 
-void setup() {
-  bt.begin(BT_BAUD);
-  ss.begin(GPS_BAUD);
-}
-
-// GPS 데이터를를 1초동안 입력받아 TinyGPSPlus 객체가 처리할 수 있게 함
+// GPS 데이터를를 DELAY_MILLISEC/1000초동안 입력받아 TinyGPSPlus 객체가 처리할 수 있게 함
 void getGPSData()
 {
-  static const uint16_t DELAY_MILLISEC = 1000;
   uint32_t start = millis();
 
   do
@@ -39,8 +35,29 @@ void getGPSData()
   } while (millis() - start < DELAY_MILLISEC);
 }
 
+//GPS 사용여부 불리언 변수
+bool bUseGPS = true;
+//이동거리 계산 위함(위도, 경도)
+double lastLongitude, lastLatitude;
+
+void setup() {
+  bt.begin(BT_BAUD);
+  ss.begin(GPS_BAUD);
+
+  //주어진 사이클만큼 GPS 준비시킴
+  bt << "Initializing GPS for " << GPS_INIT_CYCLE * DELAY_MILLISEC / 1000<< " seconds..." << endl;
+  for (register uint8_t i = 0; i < GPS_INIT_CYCLE; ++i)
+  {
+    getGPSData();
+    if(gps.location.isUpdated() && gps.location.isValid())
+    {
+      lastLatitude = gps.location.lat();
+      lastLongitude = gps.location.lng();
+    }
+  }
+}
+
 void loop() {
-  // put your main code here, to run repeatedly:
   if (bUseGPS)
   {
     getGPSData();
@@ -49,14 +66,14 @@ void loop() {
     {
       if (gps.location.isValid())
       {
-        float lat = gps.location.lat();
-        float lng = gps.location.lng();
+        double lat = gps.location.lat();
+        double lng = gps.location.lng();
+        double currentSpd = gps.speed.kmph();
 
-        if (bFirstGPS) bFirstGPS = false;
-        else if (gps.speed.kmph() >= 1)
+        if (currentSpd >= GPS_IGNORE_SPEED)
         {
           bt << "Moved distance : " << gps.distanceBetween(lastLatitude, lastLongitude, lat, lng) << "m" << endl;
-          bt << "Current Speed : " << gps.speed.kmph() << "km/h" << endl;
+          bt << "Current Speed : " << currentSpd << "km/h" << endl;
         }
         else
           bt << "Moved distance : 0m" << endl << "Current Speed : 0km/h" << endl;
@@ -65,5 +82,6 @@ void loop() {
         lastLongitude = lng;
       }
     }
+    else bt << "Waiting for good GPS signal..." << endl;
   }
 }
