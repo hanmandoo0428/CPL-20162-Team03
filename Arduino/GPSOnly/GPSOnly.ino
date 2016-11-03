@@ -1,6 +1,7 @@
 #include <TinyGPS++.h>
 #include <AltSoftSerial.h>
 #include <Streaming.h>
+#include <math.h>
 //AltSoftSerial 라이브러리는 스케치-라이브러리 포함하기-라이브러리 관리 에서 다운로드 가능
 //AltSoftSerial 은 핀 정해져 있음(Tx D9 Rx D8)
 //TinyGPSPlus 라이브러리 출처 : http://arduiniana.org/libraries/tinygpsplus/, 설치하려면 ZIP 파일 다운로드 받아서 ZIP 라이브러리 추가 메뉴 사용
@@ -24,18 +25,31 @@ static const uint8_t GPS_INIT_CYCLE = 5;
 static const double GPS_IGNORE_SPEED = 1.5;
 
 //GPS 정지 메세지(임의로 설정해 놓았기 때문에 변경가능)
-static const String GPS_STOP_MSG = "GPS_STOP";
-static const String GPS_STOP_RESPONSE = "GPS_STOPPED";
+static const char* GPS_STOP_MSG = "GPS_STOP";
+static const char* GPS_STOP_RESPONSE = "GPS_STOPPED";
 //GPS 시작 메세지(임의로 설정해 놓았기 때문에 변경가능)
-static const String GPS_START_MSG = "GPS_START";
-static const String GPS_START_RESPONSE = "GPS_STARTED";
-//GPS 속도, 거리 메세지, 여기에서 값 붙여서 보냄(임의로 설정해 놓았기 때문에 변경가능)
-static const String GPS_DISTANCE_MSG = "GPS_DISTANCE ";
-static const String GPS_SPPED_MSG = "GPS_SPPED ";
+static const char* GPS_START_MSG = "GPS_START";
+static const char* GPS_START_RESPONSE = "GPS_STARTED";
+//GPS 속도, 거리, 고도 메세지, 여기에서 값 붙여서 보냄(임의로 설정해 놓았기 때문에 변경가능)
+static const char* GPS_DISTANCE_MSG = "GPS_DISTANCE ";
+static const char* GPS_SPEED_MSG = "GPS_SPEED ";
+static const char* GPS_ALT_MSG = "GPS_ALT ";
 //GPS 신호대기 메세지(임의로 설정해 놓았기 때문에 변경가능)
-static const String GPS_WAITSIG_MSG = "GPS_WAITSIG";
+static const char* GPS_WAITSIG_MSG = "GPS_WAITSIG";
 //GPS 최초 시작 메세지(임의로 설정해 놓았기 때문에 변경가능)
-static const String GPS_INIT_MSG = "GPS_INIT ";
+static const char* GPS_INIT_MSG = "GPS_INIT ";
+//GPS 거리 계산에 고도 사용여부 메세지
+static const char* GPS_USE_ALTITUDE = "GPS_USE_ALT";
+static const char* GPS_NOUSE_ALTITUDE = "GPS_NOUSE_ALT";
+static const char* GPS_USE_ALT_RESPONSE = "GPS_START_USE_ALT";
+static const char* GPS_NOUSE_ALT_RESPONSE = "GPS_STOP_USE_ALT";
+
+//GPS 사용여부 불리언 변수
+bool bUseGPS = true;
+//이동거리 계산에 고도 계산여부 불리언 변수
+bool bUseGPSAlt = false;
+//이동거리 계산 위함(위도, 경도, 고도)
+double lastLongitude, lastLatitude, lastAltitude;
 
 // GPS 데이터를를 DELAY_MILLISEC/1000초동안 입력받아 TinyGPSPlus 객체가 처리할 수 있게 함
 void getGPSData()
@@ -49,11 +63,7 @@ void getGPSData()
   } while (millis() - start < DELAY_MILLISEC);
 }
 
-//GPS 사용여부 불리언 변수
-bool bUseGPS = true;
-//이동거리 계산 위함(위도, 경도)
-double lastLongitude, lastLatitude;
-
+inline bool operator==(const char* & lhs,  const String &rhs) { return rhs.equals(lhs); }
 void setup() {
   bt.begin(BT_BAUD);
   ss.begin(GPS_BAUD);
@@ -67,12 +77,13 @@ void setup() {
     {
       lastLatitude = gps.location.lat();
       lastLongitude = gps.location.lng();
+      lastAltitude = gps.altitude.meters();
     }
   }
 }
 
 void loop() {
-  if (bUseGPS)
+  if (true == bUseGPS)
   {
     getGPSData();
 
@@ -80,21 +91,28 @@ void loop() {
     {
       if (gps.location.isValid())
       {
-        double lat = gps.location.lat();
-        double lng = gps.location.lng();
+        double currentLat = gps.location.lat();
+        double currentLng = gps.location.lng();
         double currentSpd = gps.speed.kmph();
+        double currentAlt = gps.altitude.meters();
+        double movedDistance = gps.distanceBetween(lastLatitude, lastLongitude, currentLat, currentLng);
 
-        //거리는 m(미터)단위, 속도는 km/h 단위
+        if (true == bUseGPSAlt)
+          movedDistance = sqrt(movedDistance * movedDistance + pow(abs(lastAltitude - currentAlt), 2));
+
+        //거리와 고도는 m(미터)단위, 속도는 km/h 단위
         if (currentSpd >= GPS_IGNORE_SPEED)
         {
-          bt << GPS_DISTANCE_MSG << gps.distanceBetween(lastLatitude, lastLongitude, lat, lng) << endl;
-          bt << GPS_SPPED_MSG << currentSpd << endl;
+          bt << GPS_DISTANCE_MSG << movedDistance << endl;
+          bt << GPS_SPEED_MSG << currentSpd << endl;
+          bt << GPS_ALT_MSG << currentAlt << endl;
         }
         else
-          bt << GPS_DISTANCE_MSG << '0' << endl << GPS_SPPED_MSG << '0' << endl;
+          bt << GPS_DISTANCE_MSG << '0' << endl << GPS_SPEED_MSG << '0' << endl << GPS_ALT_MSG << lastAltitude << endl;
 
-        lastLatitude = lat;
-        lastLongitude = lng;
+        lastLatitude = currentLat;
+        lastLongitude = currentLng;
+        lastAltitude = currentAlt;
       }
     }
     else bt << GPS_WAITSIG_MSG << endl;
@@ -104,15 +122,25 @@ void loop() {
   if (bt.available())
   {
     String msg = bt.readString();
-    if (true == bUseGPS && msg == GPS_STOP_MSG)
+    if (true == bUseGPS && GPS_STOP_MSG == msg)
     {
       bUseGPS = false;
       bt.println(GPS_STOP_RESPONSE);
     }
-    else if (false == bUseGPS && msg == GPS_START_MSG)
+    else if (false == bUseGPS && GPS_START_MSG == msg)
     {
       bUseGPS = true;
       bt.println(GPS_START_RESPONSE);
+    }
+    else if (false == bUseGPSAlt && GPS_USE_ALTITUDE == msg)
+    {
+      bUseGPSAlt = true;
+      bt.println(GPS_USE_ALT_RESPONSE);
+    }
+    else if (true == bUseGPSAlt && GPS_NOUSE_ALTITUDE == msg)
+    {
+      bUseGPSAlt = false;
+      bt.println(GPS_NOUSE_ALT_RESPONSE);
     }
   }
 }
