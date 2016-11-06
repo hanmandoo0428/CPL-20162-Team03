@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<resources>
+
+    <string name="app_name">심장박동센서</string>
+
+    <string name="action_settings">Settings</string>
+
+    <!-- DeviceListActivity -->
+
+
+    <string name="scanning">장치 찾는중 ..</string>
+
+    <string name="select_device">연결 가능한 장치</string>
+
+    <string name="none_paired">No devices have been paired</string>
+
+    <string name="none_found">다른 장치를 찾지 못했습니다</string>
+
+    <string name="title_paired_devices">장치</string>
+
+    <string name="title_other_devices">다른 연결장치</string>
+
+    <string name="button_scan">찾기</string>
+
+
+    <string name="secure_connect">Connect a device - Secure</string>
+
+    <string name="insecure_connect">Connect a device - Insecure</string>
+
+    <string name="discoverable">Make discoverable</string>
+
+</resources>

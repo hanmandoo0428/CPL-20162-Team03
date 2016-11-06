@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+
+    <resources>
+    <style parent="android:Theme.Light" name="AppBaseTheme"></style>
+    <style parent="AppBaseTheme" name="AppTheme"></style>
+
+</resources>
