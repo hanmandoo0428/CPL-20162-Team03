@@ -44,6 +44,8 @@ static const char *GPS_USE_ALTITUDE = "GPS_USE_ALT";
 static const char *GPS_NOUSE_ALTITUDE = "GPS_NOUSE_ALT";
 static const char *GPS_USE_ALT_RESPONSE = "GPS_START_USE_ALT";
 static const char *GPS_NOUSE_ALT_RESPONSE = "GPS_STOP_USE_ALT";
+//GPS 센서가 사용중인 위성 수 메세지
+static const char *GPS_SAT_IN_USE_MSG = "GPS_SAT_IN_USE ";
 
 //GPS 사용여부 불리언 변수
 bool bUseGPS = true;
@@ -64,8 +66,17 @@ void getGPSData()
   } while (millis() - start < DELAY_MILLISEC);
 }
 
-inline bool operator==(const char* & lhs,  const String &rhs) { return rhs.equals(lhs); }
-inline void printStaticStatus() { bt << GPS_DISTANCE_MSG << '0' << endl << GPS_SPEED_MSG << '0' << endl << GPS_ALT_MSG << lastAltitude << endl << GPS_HDG_MSG << '0' << endl; }
+inline bool operator==(const char* & lhs,  const String &rhs) {
+  return rhs.equals(lhs);
+}
+inline void printStaticStatus()
+{
+  bt << GPS_DISTANCE_MSG << '0' << endl;
+  bt << GPS_SPEED_MSG << '0' << endl;
+  bt << GPS_ALT_MSG << lastAltitude << endl;
+  bt << GPS_HDG_MSG << '0' << endl;
+  bt << GPS_SAT_IN_USE_MSG << gps.satellites.value() << endl;
+}
 void setup() {
   bt.begin(BT_BAUD);
   ss.begin(GPS_BAUD);
@@ -75,7 +86,7 @@ void setup() {
   for (register uint8_t i = 0; i < GPS_INIT_CYCLE; ++i)
   {
     getGPSData();
-    if(gps.location.isUpdated() && gps.location.isValid())
+    if (gps.location.isUpdated() && gps.location.isValid())
     {
       lastLatitude = gps.location.lat();
       lastLongitude = gps.location.lng();
@@ -108,16 +119,17 @@ void loop() {
           bt << GPS_DISTANCE_MSG << movedDistance << endl;
           bt << GPS_SPEED_MSG << currentSpd << endl;
           bt << GPS_ALT_MSG << currentAlt << endl;
-          bt << GPS_HDG_MSG << gps.cardinal(gps.courseTo(lastLatitude, lastLongitude, currentLat, currentLng)) << endl;
+          bt << GPS_HDG_MSG << static_cast<uint16_t>(gps.courseTo(lastLatitude, lastLongitude, currentLat, currentLng)) << endl;
+          bt << GPS_SAT_IN_USE_MSG << gps.satellites.value() << endl;
+
+          lastLatitude = currentLat;
+          lastLongitude = currentLng;
+          lastAltitude = currentAlt;
         }
         else printStaticStatus();
-
-        lastLatitude = currentLat;
-        lastLongitude = currentLng;
-        lastAltitude = currentAlt;
       }
       else bt << GPS_WAITSIG_MSG << endl;
-    } 
+    }
     else printStaticStatus();
   }
 
