@@ -25,24 +25,25 @@ static const uint8_t GPS_INIT_CYCLE = 5;
 static const double GPS_IGNORE_SPEED = 1.5;
 
 //GPS 정지 메세지(임의로 설정해 놓았기 때문에 변경가능)
-static const char* GPS_STOP_MSG = "GPS_STOP";
-static const char* GPS_STOP_RESPONSE = "GPS_STOPPED";
+static const char *GPS_STOP_MSG = "GPS_STOP";
+static const char *GPS_STOP_RESPONSE = "GPS_STOPPED";
 //GPS 시작 메세지(임의로 설정해 놓았기 때문에 변경가능)
-static const char* GPS_START_MSG = "GPS_START";
-static const char* GPS_START_RESPONSE = "GPS_STARTED";
-//GPS 속도, 거리, 고도 메세지, 여기에서 값 붙여서 보냄(임의로 설정해 놓았기 때문에 변경가능)
-static const char* GPS_DISTANCE_MSG = "GPS_DISTANCE ";
-static const char* GPS_SPEED_MSG = "GPS_SPEED ";
-static const char* GPS_ALT_MSG = "GPS_ALT ";
+static const char *GPS_START_MSG = "GPS_START";
+static const char *GPS_START_RESPONSE = "GPS_STARTED";
+//GPS 속도, 거리, 고도, 방향 메세지, 여기에서 값 붙여서 보냄(임의로 설정해 놓았기 때문에 변경가능)
+static const char *GPS_DISTANCE_MSG = "GPS_DISTANCE ";
+static const char *GPS_SPEED_MSG = "GPS_SPEED ";
+static const char *GPS_ALT_MSG = "GPS_ALT ";
+static const char *GPS_HDG_MSG = "GPS_HEADING ";
 //GPS 신호대기 메세지(임의로 설정해 놓았기 때문에 변경가능)
-static const char* GPS_WAITSIG_MSG = "GPS_WAITSIG";
+static const char *GPS_WAITSIG_MSG = "GPS_WAITSIG";
 //GPS 최초 시작 메세지(임의로 설정해 놓았기 때문에 변경가능)
-static const char* GPS_INIT_MSG = "GPS_INIT ";
+static const char *GPS_INIT_MSG = "GPS_INIT ";
 //GPS 거리 계산에 고도 사용여부 메세지
-static const char* GPS_USE_ALTITUDE = "GPS_USE_ALT";
-static const char* GPS_NOUSE_ALTITUDE = "GPS_NOUSE_ALT";
-static const char* GPS_USE_ALT_RESPONSE = "GPS_START_USE_ALT";
-static const char* GPS_NOUSE_ALT_RESPONSE = "GPS_STOP_USE_ALT";
+static const char *GPS_USE_ALTITUDE = "GPS_USE_ALT";
+static const char *GPS_NOUSE_ALTITUDE = "GPS_NOUSE_ALT";
+static const char *GPS_USE_ALT_RESPONSE = "GPS_START_USE_ALT";
+static const char *GPS_NOUSE_ALT_RESPONSE = "GPS_STOP_USE_ALT";
 
 //GPS 사용여부 불리언 변수
 bool bUseGPS = true;
@@ -64,6 +65,7 @@ void getGPSData()
 }
 
 inline bool operator==(const char* & lhs,  const String &rhs) { return rhs.equals(lhs); }
+inline void printStaticStatus() { bt << GPS_DISTANCE_MSG << '0' << endl << GPS_SPEED_MSG << '0' << endl << GPS_ALT_MSG << lastAltitude << endl << GPS_HDG_MSG << '0' << endl; }
 void setup() {
   bt.begin(BT_BAUD);
   ss.begin(GPS_BAUD);
@@ -106,16 +108,17 @@ void loop() {
           bt << GPS_DISTANCE_MSG << movedDistance << endl;
           bt << GPS_SPEED_MSG << currentSpd << endl;
           bt << GPS_ALT_MSG << currentAlt << endl;
+          bt << GPS_HDG_MSG << gps.cardinal(gps.courseTo(lastLatitude, lastLongitude, currentLat, currentLng)) << endl;
         }
-        else
-          bt << GPS_DISTANCE_MSG << '0' << endl << GPS_SPEED_MSG << '0' << endl << GPS_ALT_MSG << lastAltitude << endl;
+        else printStaticStatus();
 
         lastLatitude = currentLat;
         lastLongitude = currentLng;
         lastAltitude = currentAlt;
       }
-    }
-    else bt << GPS_WAITSIG_MSG << endl;
+      else bt << GPS_WAITSIG_MSG << endl;
+    } 
+    else printStaticStatus();
   }
 
   //메세지 처리 -> 명령 받으면 실행 후 답장 보냄
