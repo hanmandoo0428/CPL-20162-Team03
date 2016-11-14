@@ -1,40 +1,40 @@
-<?xml version="1.0"?>
-
-    <RelativeLayout tools:context="com.example.administrator.groove4.MainActivity"
-    android:paddingTop="@dimen/activity_vertical_margin"
-    android:paddingRight="@dimen/activity_horizontal_margin"
-    android:paddingLeft="@dimen/activity_horizontal_margin"
-    android:paddingBottom="@dimen/activity_vertical_margin"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_width="match_parent" xmlns:tools="http://schemas.android.com/tools"
-    xmlns:android="http://schemas.android.com/apk/res/android">
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    tools:context="com.example.administrator.groove8.MainActivity" >
 
-    <Button android:layout_height="wrap_content"
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/imageView"
+        android:layout_centerHorizontal="true"
+        android:src="@drawable/heart"
+        android:layout_below="@+id/textView" />
+
+    <TextView
         android:layout_width="wrap_content"
-        android:text="연결"
-        android:id="@+id/btn_connect"
+        android:layout_height="wrap_content"
+        android:text="wait"
+        android:id="@+id/receiveString"
+        android:textSize="100dp"
+        android:gravity="center"
+        android:layout_centerVertical="true"
+        android:layout_centerHorizontal="true"
+        android:textColor="#ffffff" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="맥박 감지중 .."
+        android:id="@+id/textView"
         android:layout_alignParentTop="true"
-        android:layout_alignParentEnd="true" />
-
-    <TextView android:layout_height="wrap_content"
-        android:layout_width="wrap_content"
-        android:text="" android:id="@+id/txt_result" />
-
-    <EditText
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:inputType="number"
-        android:ems="10"
-        android:id="@+id/entry"
         android:layout_alignParentStart="true"
-        android:layout_toStartOf="@+id/send" />
-
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="send"
-        android:id="@+id/send"
-        android:layout_alignTop="@+id/btn_connect"
-        android:layout_toStartOf="@+id/btn_connect" />
+        android:textSize="40dp"
+        android:gravity="center" />
 
 </RelativeLayout>
