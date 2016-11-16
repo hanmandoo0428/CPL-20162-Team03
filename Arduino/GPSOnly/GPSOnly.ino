@@ -1,7 +1,9 @@
+#pragma GCC optimize ("-O2")
 #include <TinyGPS++.h>
 #include <AltSoftSerial.h>
 #include <Streaming.h>
 #include <math.h>
+#include <Wire.h>
 //AltSoftSerial 라이브러리는 스케치-라이브러리 포함하기-라이브러리 관리 에서 다운로드 가능
 //AltSoftSerial 은 핀 정해져 있음(Tx D9 Rx D8)
 //TinyGPSPlus 라이브러리 출처 : http://arduiniana.org/libraries/tinygpsplus/, 설치하려면 ZIP 파일 다운로드 받아서 ZIP 라이브러리 추가 메뉴 사용
@@ -46,6 +48,11 @@ static const char *GPS_USE_ALT_RESPONSE = "GPS_START_USE_ALT";
 static const char *GPS_NOUSE_ALT_RESPONSE = "GPS_STOP_USE_ALT";
 //GPS 센서가 사용중인 위성 수 메세지
 static const char *GPS_SAT_IN_USE_MSG = "GPS_SAT_IN_USE ";
+//심박 메세지
+static const char *HRM_MSG = "HEART_RATE ";
+
+//Grove 심박 센서 I2C 주소(0xA0 >> 1 == 0x50 == 80)
+static const uint8_t HRM_I2C_ADDR = 80;
 
 //GPS 사용여부 불리언 변수
 bool bUseGPS = true;
@@ -80,6 +87,7 @@ inline void printStaticStatus()
 void setup() {
   bt.begin(BT_BAUD);
   ss.begin(GPS_BAUD);
+  Wire.begin();
 
   //주어진 사이클만큼 GPS 준비시킴
   bt << GPS_INIT_MSG << GPS_INIT_CYCLE * DELAY_MILLISEC / 1000 << endl;
@@ -132,7 +140,17 @@ void loop() {
     }
     else printStaticStatus();
   }
-
+  //1초에 1번 GPS읽으니 GPS 사용하지 않을때는 그만큼 Sleep 걸어줘야 함
+  else delay(DELAY_MILLISEC);
+    
+  //심박값 메세지 전송
+  Wire.requestFrom(HRM_I2C_ADDR, 1);
+  while(Wire.available())
+  {
+    uint8_t val = Wire.read();
+    bt << HRM_MSG << val << endl;
+  } 
+  
   //메세지 처리 -> 명령 받으면 실행 후 답장 보냄
   if (bt.available())
   {
