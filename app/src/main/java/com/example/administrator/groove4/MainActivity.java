@@ -25,6 +25,9 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.administrator.groove4.btmessageparser.BluetoothMessageEnum;
+import com.example.administrator.groove4.btmessageparser.BluetoothMessageParser;
+
 
 public class MainActivity extends Activity {
     // 사용자 정의 함수로 블루투스 활성 상태의 변경 결과를 App으로 알려줄때 식별자로 사용됨 (0보다 커야함)
@@ -176,15 +179,20 @@ public class MainActivity extends Activity {
 
                                     System.arraycopy(readBuffer, 0, encodedBytes, 0, encodedBytes.length);
 
-                                    final String data = new String(encodedBytes, "US-ASCII");
+                                    final String packet = new String(encodedBytes, "US-ASCII");
                                     readBufferPosition = 0;
 
+                                    String[] msgs = packet.split(" ");
+                                    final StringBuffer data = new StringBuffer("");
+                                    if(BluetoothMessageParser.getmessageType(msgs[0])
+                                            == BluetoothMessageEnum.HRM_MSG)
+                                        data.append(msgs[1]);
                                     handler.post(new Runnable(){
                                         // 수신된 문자열 데이터에 대한 처리.
                                         @Override
                                         public void run() {
                                             // mStrDelimiter = '\n';
-                                            mEditReceive.setText(data);
+                                            mEditReceive.setText(data.toString());
                                             Log.d(TAG,"shl - Receive data");
                                         }
 
